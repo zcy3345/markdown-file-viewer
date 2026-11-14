@@ -1,0 +1,14 @@
+# 统一用 LF 提交，避免 Windows/Linux 换行抖动
+* text=auto eol=lf
+
+# 二进制文件
+*.png   binary
+*.ico   binary
+*.woff2 binary
+*.exe   binary
+
+# 文档与脚本的差异展示
+*.md    text eol=lf
+*.rs    text eol=lf
+*.css   text eol=lf
+*.ps1   text eol=crlf

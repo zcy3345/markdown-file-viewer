@@ -1,0 +1,46 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust (stable, msvc)
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
+          components: clippy, rustfmt
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: mdv -> target
+
+      - name: Format check
+        working-directory: mdv
+        run: cargo fmt --check
+
+      - name: Clippy (deny warnings)
+        working-directory: mdv
+        run: cargo clippy --release -- -D warnings
+
+      - name: Build
+        working-directory: mdv
+        run: cargo build --release --locked
+
+      - name: Smoke test (render spec.md, no window)
+        run: ./mdv/target/release/mdv.exe spec.md --print
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: mdv-x86_64-windows
+          path: mdv/target/release/mdv.exe
+          if-no-files-found: error

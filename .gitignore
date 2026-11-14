@@ -1,0 +1,13 @@
+# 构建产物（331 MB，可 cargo build 重建）
+/mdv/target/
+
+# 运行期产物（正常都在 %TEMP%，这里只是兜底）
+*.part
+*.tmp
+
+# IDE / 编辑器
+.vscode/
+.idea/
+
+# 交付物（自行 build；或从 Release 下载）
+/mdv.exe

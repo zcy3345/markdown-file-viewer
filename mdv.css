@@ -1,0 +1,266 @@
+/* mdv.css — 排版样式（编译期内嵌进 mdv.exe）
+   改这里之后要 cargo build 才会生效（样式是 include_str! 进去的）。
+   配色只用一条强调色（墨绿）；代码卡片固定深色，深浅模式都成立。 */
+
+/* 配色依据（长时阅读）：
+   1) 对比度不拉满。正文/底色约 12:1，高于 WCAG AAA(7:1) 但不刺眼。
+      平板长时阅读实验（Yu et al. 2019，低照度下测 1:2.5/4.5/6.5/8.5 四档）表明并非越高越好。
+   2) 暖白底色（#FAF8F3）。Rello & Bigham 2017、Betinger & Temelman 2026 支持暖色背景
+      对阅读舒适度的正面作用（在阅读困难人群里显著，普通人群温和）。不做黄色滤镜
+      —— 该效应在 2024 年的复现实验里未能重现。
+   3) 深色模式保留，但不用纯黑纯白。实验室里"亮底暗字"的校对表现更好
+      （Piepenbrock 等：positive polarity advantage，小字号下优势更明显），
+      所以浅色仍是默认；暗色用于低照度与减少眩光。 */
+:root{
+  --bg:#FAF8F3; --fg:#33332E; --muted:#6E6A60; --line:#E4E0D6; --accent:#2C6B4A;
+  --code-bg:#0f1620; --code-fg:#e6edf3; --inline-bg:#EFEBE2;
+  /* 卡片/公式块的描边与底纹：浅色下用极淡的投影感，深色下靠描边划出层次 */
+  --card-line:rgba(40,35,20,.12);
+  --quote-bg:color-mix(in srgb,var(--fg) 3%,var(--bg));
+  /* 表格用比普通分割线更深的线，否则 940 窗口下表格结构看不清 */
+  --table-line:#CBC6B7;
+  /* 中文正文走系统字体栈，不内嵌字体。
+     想换成宋体标题：把 --heading 改成 "Source Han Serif SC","Noto Serif SC",Georgia,serif */
+  --sans:system-ui,"Microsoft YaHei UI","Microsoft YaHei",sans-serif;
+  --heading:var(--sans);
+  --mono:"Cascadia Mono","Cascadia Code","Sarasa Mono SC",Consolas,monospace;
+  /* 代码 token 颜色（语义名）。渲染器只输出 class="tk tk-kw" 这类，颜色全在这里定，
+     所以切换配色模式不需要重新渲染。 */
+  --tk-kw:#ff7b72; --tk-str:#a5d6ff; --tk-num:#79c0ff; --tk-fn:#d2a8ff;
+  --tk-type:#7ee787; --tk-meta:#ffa657; --tk-comment:#8b949e; --tk-var:var(--code-fg);
+  --tk-kw-weight:600; --tk-type-style:normal; --tk-comment-style:normal;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    /* 暗色不用纯黑/纯白：底 #15171A、正文 #D6D6D2（约 12:1） */
+    --bg:#15171A; --fg:#D6D6D2; --muted:#96968F; --line:#303339; --accent:#86C79F;
+    --code-bg:#0C1219; --inline-bg:#212529;
+    --card-line:rgba(255,255,255,.08);
+    --quote-bg:rgba(255,255,255,.03);
+    --table-line:#464C56;
+  }
+}
+
+/* ---- 配色三档：默认（彩色，跟随系统）/ .mode-dark（强制暗色）/ .mode-gray（灰度） ----
+   按钮写在页面右上角，选择存 localStorage，mdv 侧不落任何文件。 */
+
+/* 强制暗色：放在所有 media 之后，靠顺序压过系统偏好 */
+.mode-dark{
+  --bg:#15171A; --fg:#D6D6D2; --muted:#96968F; --line:#303339; --accent:#86C79F;
+  --code-bg:#0C1219; --inline-bg:#212529;
+  --card-line:rgba(255,255,255,.08);
+  --quote-bg:rgba(255,255,255,.03);
+  --table-line:#464C56;
+}
+
+/* 灰度：页面中性灰 + 代码 token 改为"亮度台阶 + 字重/斜体"三重线索 */
+.mode-gray{
+  --bg:#F4F3F0; --fg:#1B1B19; --muted:#6B6B67; --line:#DEDCD7; --accent:#3A3A38;
+  --inline-bg:#E9E8E4; --code-bg:#141414; --code-fg:#E8E8E8;
+  --card-line:rgba(20,20,18,.14); --table-line:#C6C4BE;
+  --quote-bg:rgba(0,0,0,.035);  --tk-kw:#FFFFFF; --tk-str:#A9A9A9; --tk-num:#C6C6C6; --tk-fn:#D8D8D8;
+  --tk-type:#B8B8B8; --tk-meta:#8E8E8E; --tk-comment:#6E6E6E; --tk-var:#E8E8E8;
+  --tk-kw-weight:700; --tk-type-style:italic; --tk-comment-style:italic;
+}
+@media (prefers-color-scheme: dark){
+  .mode-gray{
+    --bg:#121212; --fg:#DEDEDE; --muted:#8E8E8E; --line:#2C2C2C; --accent:#C8C8C8;
+    --inline-bg:#1E1E1E; --code-bg:#101010; --code-fg:#E8E8E8;
+    --card-line:rgba(255,255,255,.10); --table-line:#3A3A3A;
+    --quote-bg:rgba(255,255,255,.04);  }
+}
+/* 图片一并去色，免得灰底页面上突然跳出一块彩色 */
+.mode-gray img{filter:grayscale(1) contrast(.98)}
+
+/* ---- 代码 token ---- */
+.tk{color:var(--tk-var)}
+.tk-kw{color:var(--tk-kw);font-weight:var(--tk-kw-weight)}
+.tk-str{color:var(--tk-str)}
+.tk-num{color:var(--tk-num)}
+.tk-fn{color:var(--tk-fn)}
+.tk-type{color:var(--tk-type);font-style:var(--tk-type-style)}
+.tk-meta{color:var(--tk-meta)}
+.tk-comment{color:var(--tk-comment);font-style:var(--tk-comment-style)}
+.tk-var{color:var(--tk-var)}
+
+/* ---- 右上角模式按钮 ---- */
+.modes{position:fixed;top:12px;right:14px;display:flex;gap:1px;padding:2px;z-index:10;
+  border-radius:9px;border:1px solid var(--card-line);
+  background:color-mix(in srgb,var(--bg) 86%,var(--fg));
+  opacity:.38;transition:opacity .18s}
+.modes:hover,.modes:focus-within{opacity:1}
+.modes button{font:600 .72rem var(--sans);color:var(--muted);background:none;border:0;
+  padding:.3em .62em;border-radius:7px;cursor:pointer;transition:color .15s,background .15s}
+.modes button:hover{color:var(--fg)}
+.modes button[aria-pressed="true"]{
+  background:color-mix(in srgb,var(--accent) 16%,transparent);color:var(--fg)}
+@media print{.modes{display:none}}
+
+/* 跟随系统无障碍偏好，不增加设置项 */
+@media (prefers-contrast: more){
+  :root{--fg:#15150F;--muted:#4A4A42;--line:#C9C4B4;--accent:#1F5C3D;--table-line:#B4AF9E}
+}
+@media (prefers-color-scheme: dark) and (prefers-contrast: more){
+  :root{--fg:#F5F5F2;--muted:#C0C0B8;--line:#3F444C;--accent:#A5DCB9;--table-line:#5A626D}
+}
+@media (prefers-contrast: less){
+  :root{--fg:#45453E;--muted:#7A766C}
+}
+@media (prefers-color-scheme: dark) and (prefers-contrast: less){
+  :root{--fg:#C4C4BF;--muted:#8A8A83}
+}
+
+*{box-sizing:border-box}
+/* 行高 1.82：clreq 建议正文行高为字级的 1.5–1.8，取上限再略松一点给中文长文 */
+body{margin:0;background:var(--bg);color:var(--fg);font:17px/1.82 var(--sans);
+  -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+  font-variant-ligatures:none;font-feature-settings:"kern" 1;
+  line-break:strict;
+  /* 汉字与西文/数字之间自动加 ≤¼ 字宽间距（W3C clreq #712 推荐，Chromium 已支持）*/
+  text-autospace:normal}
+
+/* 代码里必须关掉，否则等宽对齐会被破坏 */
+pre,code,.code{text-autospace:no-autospace}
+/* 行长：40rem ≈ 608px，17px 字级下约 37 个汉字/行。
+   W3C clreq 的参考值是正文 17–40 字/行、横排上限 48 字；原来 46rem 约 43 字/行偏长。 */
+main{max-width:min(40rem, calc(100% - 3.5rem));margin:0 auto;padding:52px 0 96px}
+
+/* ---- 选中与键盘焦点（原来完全没有）---- */
+::selection{background:color-mix(in srgb,var(--accent) 26%,transparent);color:inherit}
+:focus-visible{outline:2px solid color-mix(in srgb,var(--accent) 72%,transparent);
+  outline-offset:2px;border-radius:4px}
+
+/* ---- 标题 ---- */
+h1,h2,h3,h4{font-family:var(--heading);line-height:1.3;font-weight:600;letter-spacing:-.005em;
+  scroll-margin-top:2em;text-wrap:balance}
+h1{font-size:2rem;margin:.35em 0 .5em}
+h2{font-size:1.42rem;margin:2.2em 0 .7em;padding-bottom:.32em;border-bottom:1px solid var(--line)}
+h3{font-size:1.16rem;margin:1.75em 0 .5em;color:color-mix(in srgb,var(--fg) 90%,var(--bg))}
+h4{font-size:1.02rem;margin:1.5em 0 .4em;color:color-mix(in srgb,var(--fg) 82%,var(--bg))}
+h1 code,h2 code,h3 code,h4 code{font-size:.9em}
+
+/* ---- 正文流 ---- */
+/* 段间距 1.45em ≈ 24.7px ≈ 0.8 个行高。中文排版通行做法是"段落间距约一个行高"，
+   原来 .95em 只有 0.53 行高，长文里段落会糊成一片 */
+p{margin:1.45em 0;text-wrap:pretty}
+a{color:var(--accent);text-decoration:underline;text-decoration-thickness:1px;
+  text-underline-offset:.18em;
+  text-decoration-color:color-mix(in srgb,var(--accent) 38%,transparent);
+  transition:text-decoration-color .15s,color .15s}
+a:hover{text-decoration-color:var(--accent);text-decoration-thickness:2px}
+strong{font-weight:700}
+ul,ol{margin:.9em 0;padding-left:1.45em}
+li{margin:.3em 0}
+li::marker{color:var(--muted)}
+li>ul,li>ol{margin:.3em 0}
+hr{width:3.5em;margin:2.8em auto;border:0;border-top:2px solid color-mix(in srgb,var(--fg) 16%,transparent)}
+
+blockquote{margin:1.6em 0;padding:.7em 1.05em;border-left:3px solid var(--accent);
+  border-radius:0 8px 8px 0;background:var(--quote-bg);
+  color:color-mix(in srgb,var(--fg) 88%,var(--bg))}
+blockquote p{margin:.4em 0}
+blockquote p:first-child{margin-top:0}
+blockquote p:last-child{margin-bottom:0}
+
+/* ---- 行内代码 ---- */
+code{font-family:var(--mono);font-size:.88em;background:var(--inline-bg);
+  padding:.15em .38em;border-radius:5px;border:1px solid var(--card-line)}
+
+/* ---- 代码块卡片 ---- */
+.code{margin:1.5em 0;background:var(--code-bg);border-radius:12px;overflow:hidden;
+  border:1px solid var(--card-line);
+  box-shadow:0 1px 2px rgba(15,22,32,.16),0 10px 28px -14px rgba(15,22,32,.40)}
+.code .bar{display:flex;justify-content:space-between;align-items:center;padding:8px 14px;
+  color:#8b98a9;font:600 .74rem var(--mono);letter-spacing:.04em;
+  border-bottom:1px solid #1e2a38;background:rgba(255,255,255,.018)}
+.code .bar .lang{display:inline-flex;align-items:center;gap:.5em;text-transform:lowercase}
+.code .bar .lang::before{content:"";width:.5em;height:.5em;border-radius:50%;
+  background:var(--accent);opacity:.85}
+.code .bar .copy{background:none;border:1px solid #2b3a4b;color:#8b98a9;border-radius:6px;
+  font:600 .72rem var(--mono);padding:2px 8px;cursor:pointer;transition:color .15s,border-color .15s}
+.code .bar .copy:hover{color:#e6edf3;border-color:#3d4d60}
+.code .bar .copy:active{transform:translateY(1px)}
+.code .body{display:flex}
+.code .gutter,.code pre code{font-family:var(--mono);font-size:.88rem;line-height:1.7}
+/* 关键：重置全局 code 的内联样式，否则 pre 里会套一块浅色背景、浅色文字打上去就看不见 */
+.code pre code{background:none;padding:0;border:0;border-radius:0;color:var(--code-fg);
+  white-space:pre;display:block}
+.code .gutter{padding:14px 8px 14px 14px;color:#5c6b7f;text-align:right;user-select:none;
+  white-space:pre;border-right:1px solid rgba(255,255,255,.04)}
+.code pre{margin:0;padding:14px 18px 14px 12px;overflow-x:auto;flex:1}
+/* 长行横向滚动：给出可感知的滚动条，而不是"内容被切掉" */
+.code pre{scrollbar-width:thin;scrollbar-color:#33414f transparent}
+.code pre::-webkit-scrollbar{height:9px}
+.code pre::-webkit-scrollbar-thumb{background:#2c3a48;border-radius:9px}
+.code pre::-webkit-scrollbar-thumb:hover{background:#3a4c5e}
+.code pre::-webkit-scrollbar-track{background:transparent}
+
+/* ---- 公式 ---- */
+.katex{font-size:1.03em}
+/* 块级公式：不加框，保持"纸面"感，只保证超宽公式可横向滚动 */
+.katex-display{margin:1.7em 0;padding:.2em 0;overflow-x:auto;overflow-y:hidden}
+
+/* ---- 表格 ---- */
+/* 表格按 A List Apart（Richard Rutter）的建议：
+   不拉伸到整栏宽度、不加外框、不用斑马纹，只保留单一方向的分隔线。
+   理由：满宽会把数据横向拉开、斑马纹会扭曲"逐行阅读"的连续性。 */
+table{border-collapse:collapse;width:auto;max-width:100%;margin:1.6em 0;font-size:.94rem;
+  font-variant-numeric:tabular-nums}
+th,td{padding:.62em .95em;border-bottom:1px solid var(--table-line);text-align:left;
+  vertical-align:top}
+th{font-family:var(--heading);font-weight:600;vertical-align:bottom;
+  border-bottom:1px solid var(--table-line)}
+td:first-child,th:first-child{padding-left:0}
+td:last-child,th:last-child{padding-right:0}
+tbody tr:last-child td{border-bottom:1px solid var(--table-line)}
+
+/* ---- 任务列表 ---- */
+ul:has(> li > input[type="checkbox"]){list-style:none;padding-left:.2em}
+li:has(> input[type="checkbox"]){padding-left:0}
+input[type="checkbox"]{appearance:none;width:.95em;height:.95em;margin:0 .55em 0 0;vertical-align:-.12em;
+  border:1.5px solid var(--muted);border-radius:4px;background:transparent;position:relative;cursor:default}
+input[type="checkbox"]:checked{background:var(--accent);border-color:var(--accent)}
+input[type="checkbox"]:checked::after{content:"";position:absolute;left:.22em;top:.05em;width:.32em;height:.55em;
+  border:2px solid var(--bg);border-top:0;border-left:0;transform:rotate(42deg)}
+
+/* ---- 图片 ---- */
+img{max-width:100%;border-radius:10px;box-shadow:0 10px 30px -18px rgba(0,0,0,.45)}
+@media (prefers-color-scheme: dark){
+  /* 深色模式下亮底图片太刺眼，整体压一档 */
+  img{filter:brightness(.92) contrast(.98);box-shadow:0 10px 30px -18px rgba(0,0,0,.75)}
+}
+figure{margin:1.8em 0;text-align:center}
+figcaption{color:var(--muted);font-size:.82rem;margin-top:.6em;max-width:34em;margin-inline:auto}
+
+/* ---- 页脚信息条 ---- */
+.docfoot{display:flex;justify-content:space-between;align-items:baseline;gap:.8em;flex-wrap:wrap;
+  color:var(--muted);font-size:.78rem;font-family:var(--mono);
+  border-top:1px solid var(--line);margin-top:3em;padding-top:.9em}
+.docfoot .doc{color:color-mix(in srgb,var(--fg) 72%,var(--bg));font-weight:600}
+.docfoot .meta{white-space:nowrap;font-variant-numeric:tabular-nums}
+
+/* ---- 脚注 ---- */
+.footnotes{margin-top:3em;padding-top:1.1em;border-top:1px solid var(--line);
+  font-size:.88rem;color:var(--muted)}
+.footnotes ol{padding-left:1.3em}
+.footnotes li{margin:.35em 0}
+.footnotes h2.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
+sup a{font-family:var(--mono);font-size:.72em;padding:0 .25em;margin:0 -.1em;border-bottom:0}
+
+/* ---- 打印：Ctrl+P 时不要印出深色卡片 ---- */
+@media print{
+  :root{--bg:#fff;--fg:#111;--muted:#555;--line:#d8d8d8;--card-line:#d8d8d8}
+  body{background:#fff;color:#111}
+  main{max-width:none;padding:0}
+  a{color:#111;border-bottom:0}
+  .code{background:#f7f7f8;border:1px solid #ddd;box-shadow:none;break-inside:avoid}
+  .code .bar{color:#666;border-bottom-color:#ddd;background:none}
+  .code .bar .copy{display:none}
+  .code .gutter{color:#999;border-right-color:#ddd}
+  .code pre{overflow:visible;white-space:pre-wrap}
+  /* 代码颜色是内联 style，只有 !important 能盖掉 */
+  .code pre code,.code pre code *{color:#1a1a1a !important;font-style:normal !important}
+  .katex-display{background:none;border:0;padding:0;break-inside:avoid}
+  blockquote{background:none}
+  img{filter:none;box-shadow:none}
+}
